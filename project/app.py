@@ -416,7 +416,7 @@ def staff_update(id):
         if proof_file and proof_file.filename != "":
             filename = secure_filename(proof_file.filename)
             proof_file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            complaint.proof_image = filename
+            complaint.proof_image = image_url
 
         db.session.commit()
         flash("Complaint updated successfully!", "success")
