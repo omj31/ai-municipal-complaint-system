@@ -10,3 +10,7 @@ numpy
 pandas
 pillow
 gunicorn
+boto3
+pymysql
+
+
