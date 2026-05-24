@@ -1,5 +1,6 @@
 import os
 import joblib
+import boto3
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -13,9 +14,12 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
+s3 = boto3.client('s3')
+sns = boto3.client('sns')
 app.secret_key = "supersecretkey" 
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'complaints.db')
+BUCKET_NAME = "municipal-app-image"
+SNS_TOPIC_ARN = "arn:aws:sns:eu-north-1:654884879903:complaint-alerts"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:YourPassword123@municipaldb.cra00qe2iwgz.eu-north-1.rds.amazonaws.com:3306/municipaldb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -188,7 +192,14 @@ def submit_complaint():
         filename = None
         if image_file and image_file.filename != "":
             filename = secure_filename(image_file.filename)
-            image_file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+            s3.upload_fileobj(
+   image_file,
+   BUCKET_NAME,
+   filename
+)
+
+image_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{filename}"
+
 
        
         predicted_priority = "Medium"  # default
@@ -206,7 +217,7 @@ def submit_complaint():
             category=category,
             description=description,
             location=location,
-            image=filename,
+            image=image_url,
             priority=predicted_priority
         )
         db.session.add(complaint)
